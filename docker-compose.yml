@@ -1,0 +1,59 @@
+###############################################################################
+#                         docker-compose up --build -d                        #
+###############################################################################
+
+services:
+    mysql:
+        container_name: laravel-mysql
+        image: 'mysql:8.0'
+        volumes:
+            - 'mysql_data:/var/lib/mysql'
+        environment:
+            - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+            - MYSQL_DATABASE=${DB_DATABASE}
+            - MYSQL_USER=${DB_USERNAME}
+            - MYSQL_PASSWORD=${DB_PASSWORD}
+        ports:
+            - '55002:3306'
+        restart: unless-stopped
+
+    webserver:
+        container_name: laravel-server
+        image: 'nginx:alpine'
+        working_dir: /application
+        volumes:
+            - './public:/application/public'
+            - './docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf'
+        depends_on:
+            - php-fpm
+        ports:
+            - '55000:80'
+        restart: unless-stopped
+
+    php-fpm:
+        container_name: php-fpm
+        build:
+            context: .
+            dockerfile: docker/php-fpm/Dockerfile
+        working_dir: /application
+        volumes:
+            - ./:/application
+        depends_on:
+            - mysql
+        restart: unless-stopped
+
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        container_name: php-my-admin
+        depends_on:
+            - mysql
+        environment:
+            - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+            - PMA_HOST=mysql
+            - PMA_PORT=3306
+        ports:
+            - '55003:80'
+        restart: unless-stopped
+
+volumes:
+    mysql_data:
