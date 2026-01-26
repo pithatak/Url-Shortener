@@ -7,6 +7,7 @@ use App\Service\JwtService;
 use App\Service\SessionService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class SessionController extends AbstractController
@@ -14,8 +15,9 @@ final class SessionController extends AbstractController
     #[Route('/api/session', methods: ['POST'])]
     public function create(
         SessionService $sessionService,
-        JwtService $jwt
-    ): JsonResponse {
+        JwtService     $jwt
+    ): JsonResponse
+    {
         $session = $sessionService->create();
 
         return $this->json([
@@ -25,19 +27,17 @@ final class SessionController extends AbstractController
 
     #[Route('/api/session', methods: ['GET'])]
     public function get(
-        JwtService $jwt,
+        JwtService        $jwt,
         SessionRepository $sessions
-    ): JsonResponse {
-        try {
-            $token = $this->getBearerToken();
-            $sessionId = $jwt->getSessionId($token);
-            $session = $sessions->find($sessionId);
+    ): JsonResponse
+    {
 
-            if (!$session) {
-                throw new \RuntimeException();
-            }
-        } catch (\Throwable) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        $token = $this->getBearerToken();
+        $sessionId = $jwt->getSessionId($token);
+        $session = $sessions->find($sessionId);
+
+        if (!$session) {
+            throw new UnauthorizedHttpException('Bearer', 'Session not found');
         }
 
         return $this->json([
@@ -51,7 +51,7 @@ final class SessionController extends AbstractController
         $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
 
         if (!str_starts_with($header, 'Bearer ')) {
-            throw new \RuntimeException();
+            throw new UnauthorizedHttpException('Bearer', 'Missing Bearer token');
         }
 
         return substr($header, 7);

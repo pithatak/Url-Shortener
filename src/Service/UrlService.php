@@ -5,6 +5,10 @@ namespace App\Service;
 use App\Entity\Url;
 use App\Message\UrlClickedMessage;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\Exception\BadRequestException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+use Symfony\Component\HttpKernel\Exception\GoneHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 class UrlService
@@ -29,7 +33,7 @@ class UrlService
                 ->findOneBy(['short_code' => $alias]);
 
             if ($exists) {
-                throw new \InvalidArgumentException('Alias already exists');
+                throw new ConflictHttpException('Alias already exists');
             }
         } else {
             do {
@@ -69,14 +73,14 @@ class UrlService
         ]);
 
         if (!$url) {
-            throw new \RuntimeException('Not found');
+            throw new NotFoundHttpException('Not found');
         }
 
         if (
             $url->getExpiresAt() !== null &&
             $url->getExpiresAt() < new \DateTimeImmutable()
         ) {
-            throw new \RuntimeException('Expired');
+            throw new GoneHttpException('Expired url');
         }
 
         $this->messageBus->dispatch(
@@ -96,7 +100,7 @@ class UrlService
         }
 
         if (!isset(self::EXPIRE_MAP[$expire])) {
-            throw new \RuntimeException('Invalid expire value');
+            throw new BadRequestException('Invalid expire value');
         }
 
         return new \DateTimeImmutable(self::EXPIRE_MAP[$expire]);

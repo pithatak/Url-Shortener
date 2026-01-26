@@ -4,6 +4,7 @@ namespace App\Service;
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 
 class JwtService
 {
@@ -25,7 +26,7 @@ class JwtService
         $payload = JWT::decode($token, new Key($this->jwtSecret, 'HS256'));
 
         if (!isset($payload->sid)) {
-            throw new \RuntimeException('Invalid token');
+            throw new UnauthorizedHttpException('Bearer', 'Invalid token payload');
         }
 
         return (int)$payload->sid;

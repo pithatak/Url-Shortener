@@ -10,6 +10,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -26,11 +27,7 @@ final class UrlController extends AbstractController
         RateLimiterFactory $rateLimiterFactory,
         JwtService $jwt,
     ): JsonResponse {
-        try {
-            $session = $this->getSession($jwt, $sessionRepository);
-        } catch (\Throwable) {
-            return $this->json(['error' => 'Unauthorized'], 401);
-        }
+        $session = $this->getSession($jwt, $sessionRepository);
 
         $limiter = $rateLimiterFactory->create((string)$session->getId());
         if (!$limiter->consume()->isAccepted()) {
@@ -40,13 +37,7 @@ final class UrlController extends AbstractController
         $data = json_decode($request->getContent(), true);
         $data['session'] = $session;
 
-        try {
-            $url = $urlService->create($data);
-        } catch (\InvalidArgumentException $e) {
-            return $this->json([
-                'error' => $e->getMessage()
-            ], 400);
-        }
+        $url = $urlService->create($data);
 
         return $this->json([
             'id' => $url->getId(),
@@ -57,11 +48,7 @@ final class UrlController extends AbstractController
     #[Route('/api/urls', methods: ['GET'])]
     public function list(SessionRepository $sessionRepository, UrlRepository $urls, JwtService $jwt): JsonResponse
     {
-        try {
-            $session = $this->getSession($jwt, $sessionRepository);
-        } catch (\Throwable) {
-            return $this->json(['error' => 'Unauthorized'], 401);
-        }
+        $session = $this->getSession($jwt, $sessionRepository);
 
         $list = $urls->findBy([
             'session' => $session,
@@ -86,11 +73,7 @@ final class UrlController extends AbstractController
         JwtService $jwt,
     ): JsonResponse
     {
-        try {
-            $session = $this->getSession($jwt, $sessionRepository);
-        } catch (\Throwable) {
-            return $this->json(['error' => 'Unauthorized'], 401);
-        }
+        $session = $this->getSession($jwt, $sessionRepository);
 
         $url = $urls->find($id);
         if (
@@ -142,11 +125,7 @@ final class UrlController extends AbstractController
         JwtService $jwt,
     ): JsonResponse
     {
-        try {
-            $session = $this->getSession($jwt, $sessionRepository);
-        } catch (\Throwable) {
-            return $this->json(['error' => 'Unauthorized'], 401);
-        }
+        $session = $this->getSession($jwt, $sessionRepository);
 
         $url = $urls->findOneBy([
             'id' => $id,
@@ -166,8 +145,9 @@ final class UrlController extends AbstractController
     private function getSession(JwtService $jwt, SessionRepository $sessions)
     {
         $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+
         if (!str_starts_with($header, 'Bearer ')) {
-            throw new \RuntimeException();
+            throw new UnauthorizedHttpException('Bearer', 'Missing token');
         }
 
         $token = substr($header, 7);
@@ -175,7 +155,7 @@ final class UrlController extends AbstractController
 
         $session = $sessions->find($sessionId);
         if (!$session) {
-            throw new \RuntimeException();
+            throw new UnauthorizedHttpException('Bearer', 'Invalid session');
         }
 
         return $session;
