@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Entity\Session;
 use App\Entity\Url;
 use App\Message\UrlClickedMessage;
 use Doctrine\ORM\EntityManagerInterface;
@@ -59,12 +60,6 @@ class UrlService
     }
 
 
-    public function delete(Url $url): void
-    {
-        $url->setDeletedAt(new \DateTimeImmutable());
-        $this->em->flush();
-    }
-
     public function resolveShortCode(string $shortCode): Url
     {
         $url = $this->em->getRepository(Url::class)->findOneBy([
@@ -76,10 +71,7 @@ class UrlService
             throw new NotFoundHttpException('Not found');
         }
 
-        if (
-            $url->getExpiresAt() !== null &&
-            $url->getExpiresAt() < new \DateTimeImmutable()
-        ) {
+        if ($url->getExpiresAt() !== null && $url->getExpiresAt() < new \DateTimeImmutable()) {
             throw new GoneHttpException('Expired url');
         }
 
@@ -106,13 +98,18 @@ class UrlService
         return new \DateTimeImmutable(self::EXPIRE_MAP[$expire]);
     }
 
-    public function getStats(Url $url): array
+    public function deleteForSession(int $id, Session $session): void
     {
-        return [
-            'id' => $url->getId(),
-            'createdAt' => $url->getCreatedAt()->format(DATE_ATOM),
-            'expiresAt' => $url->getExpiresAt()?->format(DATE_ATOM),
-            'clicks' => $url->getClicks(),
-        ];
+        $url = $this->em->getRepository(Url::class)->find($id);
+
+        if (
+            !$url ||
+            $url->getSession()->getId() !== $session->getId()
+        ) {
+            throw new NotFoundHttpException('Not found');
+        }
+
+        $url->setDeletedAt(new \DateTimeImmutable());
+        $this->em->flush();
     }
 }

@@ -2,15 +2,14 @@
 
 namespace App\Controller\Api;
 
-use App\Repository\SessionRepository;
+use App\Controller\UrlViewFactory\UrlViewFactory;
 use App\Repository\UrlRepository;
-use App\Service\JwtService;
+use App\Service\SessionAuthService;
 use App\Service\UrlService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -19,15 +18,15 @@ final class UrlController extends AbstractController
     #[Route('/api/urls', methods: ['POST'])]
     public function create(
         Request            $request,
-        SessionRepository  $sessionRepository,
+        SessionAuthService $sessionAuthService,
         UrlService         $urlService,
         #[\Symfony\Component\DependencyInjection\Attribute\Autowire(
             service: 'limiter.url_create'
         )]
-        RateLimiterFactory $rateLimiterFactory,
-        JwtService $jwt,
-    ): JsonResponse {
-        $session = $this->getSession($jwt, $sessionRepository);
+        RateLimiterFactory $rateLimiterFactory
+    ): JsonResponse
+    {
+        $session = $sessionAuthService->getSessionFromRequest($request);
 
         $limiter = $rateLimiterFactory->create((string)$session->getId());
         if (!$limiter->consume()->isAccepted()) {
@@ -46,44 +45,32 @@ final class UrlController extends AbstractController
     }
 
     #[Route('/api/urls', methods: ['GET'])]
-    public function list(SessionRepository $sessionRepository, UrlRepository $urls, JwtService $jwt): JsonResponse
+    public function list(Request            $request,
+                         SessionAuthService $sessionAuthService,
+                         UrlRepository      $urls
+    ): JsonResponse
     {
-        $session = $this->getSession($jwt, $sessionRepository);
+        $session = $sessionAuthService->getSessionFromRequest($request);
 
         $list = $urls->findBy([
             'session' => $session,
             'deleted_at' => null,
         ]);
 
-        return $this->json(array_map(fn($url) => [
-            'id' => $url->getId(),
-            'originalUrl' => $url->getOriginalUrl(),
-            'shortCode' => $url->getShortCode(),
-            'isPublic' => $url->isPublic(),
-            'expiresAt' => $url->getExpiresAt()?->format(DATE_ATOM),
-        ], $list));
+        return $this->json(UrlViewFactory::createList($list));
     }
 
     #[Route('/api/urls/{id}', methods: ['DELETE'])]
     public function delete(
-        int               $id,
-        SessionRepository $sessionRepository,
-        UrlRepository     $urls,
-        UrlService $urlService,
-        JwtService $jwt,
+        int                $id,
+        Request            $request,
+        SessionAuthService $sessionAuthService,
+        UrlService         $urlService
     ): JsonResponse
     {
-        $session = $this->getSession($jwt, $sessionRepository);
+        $session = $sessionAuthService->getSessionFromRequest($request);
 
-        $url = $urls->find($id);
-        if (
-            !$url ||
-            $url->getSession()->getId() !== $session->getId()
-        ) {
-            return $this->json(['error' => 'Not found'], 404);
-        }
-
-        $urlService->delete($url);
+        $urlService->deleteForSession($id, $session);
 
         return $this->json(['status' => 'deleted']);
     }
@@ -96,13 +83,7 @@ final class UrlController extends AbstractController
             'deleted_at' => null,
         ]);
 
-        return $this->json(array_map(fn($url) => [
-            'id' => $url->getId(),
-            'originalUrl' => $url->getOriginalUrl(),
-            'shortCode' => $url->getShortCode(),
-            'isPublic' => $url->isPublic(),
-            'expiresAt' => $url->getExpiresAt()?->format(DATE_ATOM),
-        ], $publicUrls));
+        return $this->json(UrlViewFactory::createList($publicUrls));
     }
 
     #[Route('/{shortCode}', methods: ['GET'])]
@@ -118,14 +99,13 @@ final class UrlController extends AbstractController
 
     #[Route('/api/urls/{id}/stats', methods: ['GET'])]
     public function stats(
-        int               $id,
-        SessionRepository $sessionRepository,
-        UrlRepository     $urls,
-        UrlService        $stats,
-        JwtService $jwt,
+        int                $id,
+        Request            $request,
+        SessionAuthService $sessionAuthService,
+        UrlRepository      $urls
     ): JsonResponse
     {
-        $session = $this->getSession($jwt, $sessionRepository);
+        $session = $sessionAuthService->getSessionFromRequest($request);
 
         $url = $urls->findOneBy([
             'id' => $id,
@@ -137,27 +117,6 @@ final class UrlController extends AbstractController
             return $this->json(['error' => 'Not found'], 404);
         }
 
-        return $this->json(
-            $stats->getStats($url)
-        );
-    }
-
-    private function getSession(JwtService $jwt, SessionRepository $sessions)
-    {
-        $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-
-        if (!str_starts_with($header, 'Bearer ')) {
-            throw new UnauthorizedHttpException('Bearer', 'Missing token');
-        }
-
-        $token = substr($header, 7);
-        $sessionId = $jwt->getSessionId($token);
-
-        $session = $sessions->find($sessionId);
-        if (!$session) {
-            throw new UnauthorizedHttpException('Bearer', 'Invalid session');
-        }
-
-        return $session;
+        return $this->json(UrlViewFactory::getOneUrlStat($url));
     }
 }

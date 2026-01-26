@@ -2,12 +2,12 @@
 
 namespace App\Controller\Api;
 
-use App\Repository\SessionRepository;
 use App\Service\JwtService;
+use App\Service\SessionAuthService;
 use App\Service\SessionService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class SessionController extends AbstractController
@@ -26,34 +26,13 @@ final class SessionController extends AbstractController
     }
 
     #[Route('/api/session', methods: ['GET'])]
-    public function get(
-        JwtService        $jwt,
-        SessionRepository $sessions
-    ): JsonResponse
+    public function get(SessionAuthService $sessionAuthService, Request $request): JsonResponse
     {
-
-        $token = $this->getBearerToken();
-        $sessionId = $jwt->getSessionId($token);
-        $session = $sessions->find($sessionId);
-
-        if (!$session) {
-            throw new UnauthorizedHttpException('Bearer', 'Session not found');
-        }
+        $session = $sessionAuthService->getSessionFromRequest($request);
 
         return $this->json([
             'id' => (string)$session->getId(),
             'createdAt' => $session->getCreatedAt(),
         ]);
-    }
-
-    private function getBearerToken(): string
-    {
-        $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-
-        if (!str_starts_with($header, 'Bearer ')) {
-            throw new UnauthorizedHttpException('Bearer', 'Missing Bearer token');
-        }
-
-        return substr($header, 7);
     }
 }
