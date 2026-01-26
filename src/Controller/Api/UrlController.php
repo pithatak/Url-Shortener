@@ -10,14 +10,30 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class UrlController extends AbstractController
 {
+
     #[Route('/api/urls', methods: ['POST'])]
-    public function create(Request $request, SessionRepository $sessionRepository, UrlService $urlService): JsonResponse
+    public function create(
+        Request            $request,
+        SessionRepository  $sessionRepository,
+        UrlService         $urlService,
+        #[\Symfony\Component\DependencyInjection\Attribute\Autowire(
+            service: 'limiter.url_create'
+        )]
+        RateLimiterFactory $rateLimiterFactory
+    ): JsonResponse
     {
         $sessionId = (int)$request->cookies->get('SESSION_ID');
+        $limiter = $rateLimiterFactory->create((string)$sessionId);
+
+        if (!$limiter->consume()->isAccepted()) {
+            return $this->json(['error' => 'Too many requests'], 429);
+        }
+
         if (!$sessionId) {
             return $this->json(['error' => 'No session'], 401);
         }
