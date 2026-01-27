@@ -50,6 +50,7 @@ services:
         depends_on:
             - postgres
         restart: unless-stopped
+        command: php-fpm
 
     rabbitmq:
         image: rabbitmq:3-management
@@ -57,6 +58,20 @@ services:
             - "5672:5672"    # AMQP
             - "15672:15672"  # Web UI
 
+    worker:
+        container_name: urls-worker
+        build:
+            context: .
+            dockerfile: docker/php-fpm/Dockerfile
+        working_dir: /application
+        volumes:
+            - ./:/application
+        command: >
+            php bin/console messenger:consume async
+        depends_on:
+            - rabbitmq
+            - postgres
+        restart: unless-stopped
 
 volumes:
     postgres_data:
