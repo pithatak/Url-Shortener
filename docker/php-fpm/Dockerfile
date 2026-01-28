@@ -1,6 +1,6 @@
 FROM php:8.4-fpm
 
-WORKDIR /application
+WORKDIR /application/backend
 
 # system deps
 RUN apt-get update && apt-get install -y \

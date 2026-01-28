@@ -1,20 +1,49 @@
-### PhpStorm setings
+# ========================
+# IDE
+# ========================
 .idea/
 *.iml
 
-###> symfony/framework-bundle ###
-/.env.local
-/.env.local.php
-/.env.*.local
-/.env
-/.env.dev
-/config/secrets/prod/prod.decrypt.private.php
-/public/bundles/
-/var/
-/vendor/
-###< symfony/framework-bundle ###
+# ========================
+# Docker
+# ========================
+/docker-compose.override.yml
+**/Dockerfile
 
-###> phpunit/phpunit ###
+# ========================
+# Symfony / Backend
+# ========================
+/backend/.env
+/backend/.env.local
+/backend/.env.local.php
+/backend/.env.*.local
+/backend/var/
+/backend/vendor/
+/backend/public/bundles/
+
 /phpunit.xml
 /.phpunit.cache/
-###< phpunit/phpunit ###
+
+# ========================
+# Next.js / Frontend
+# ========================
+/frontend/node_modules/
+/frontend/.next/
+/frontend/out/
+/frontend/build/
+/frontend/.vercel/
+/frontend/*.pem
+
+/frontend/npm-debug.log*
+/frontend/yarn-debug.log*
+/frontend/yarn-error.log*
+/frontend/.pnpm-debug.log*
+/frontend/.env*
+/frontend/.DS_Store
+/frontend/.pnp
+/frontend/.pnp.*
+
+# ========================
+# Misc
+# ========================
+*.log
