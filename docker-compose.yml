@@ -85,9 +85,9 @@ services:
       working_dir: /application/frontend
       volumes:
         - ./frontend:/application/frontend
+        - /application/frontend/node_modules
       ports:
         - "3000:3000"
-      command: npm run dev
       depends_on:
         - php-fpm
       restart: unless-stopped

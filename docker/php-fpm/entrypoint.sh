@@ -9,7 +9,7 @@ done
 
 echo "PostgreSQL is ready"
 
-echo "🧹 Clearing cache..."
+echo "Clearing cache..."
 php bin/console cache:clear || true
 
 # Composer install

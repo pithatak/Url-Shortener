@@ -81,7 +81,7 @@ final class UrlController extends AbstractController
         $publicUrls = $urls->findBy([
             'is_public' => true,
             'deleted_at' => null,
-        ]);
+        ], ['id' => 'DESC']);
 
         return $this->json(UrlViewFactory::createList($publicUrls));
     }
