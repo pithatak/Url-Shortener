@@ -84,7 +84,8 @@ export function UrlsPanel({ token }: Props) {
     };
 
     return (
-        <div className="w-1/3">
+        <div className="w-2/3 flex flex-col">
+            {/* вкладки */}
             <div className="flex gap-2 mb-2">
                 <button
                     onClick={() => setMode("public")}
@@ -100,47 +101,51 @@ export function UrlsPanel({ token }: Props) {
                     Your URLs
                 </button>
             </div>
-            <table className="w-full border text-sm">
-                <thead>
-                <tr className="border-b">
-                    <th className="p-2 text-left">ID</th>
-                    <th className="p-2 text-left">Original URL</th>
-                    <th className="p-2 text-left">ShortCode</th>
-                    <th className="p-2 text-left">Expires At</th>
-                    <th className="p-2 text-left">Actions</th>
-                </tr>
-                </thead>
-                <tbody>
-                {urls.map(u => (
-                    <tr key={u.id} className="border-b">
-                        <td className="p-2">{u.id}</td>
-                        <td className="p-2 truncate">{u.originalUrl}</td>
-                        <td className="p-2">
-                            <a href={`http://host.docker.internal:57000/${u.shortCode}`} target="_blank" className="text-blue-600 underline">
-                                {u.shortCode}
-                            </a>
-                        </td>
-                        <td className="p-2">{u.expiresAt || "—"}</td>
-                        <td className="p-2 flex gap-2">
-                            <button
-                                onClick={() => showStats(u)}
-                                className="bg-green-600 text-white px-2 py-1 rounded text-xs"
-                            >
-                                Show stats
-                            </button>
-                            {mode === "private" && (
-                                <button
-                                    onClick={() => deleteUrl(u)}
-                                    className="bg-red-600 text-white px-2 py-1 rounded text-xs"
-                                >
-                                    Delete
-                                </button>
-                            )}
-                        </td>
+
+            {/* таблиця з scroll */}
+            <div className="overflow-y-auto border rounded flex-1">
+                <table className="w-full border text-sm">
+                    <thead className="bg-gray-100 sticky top-0">
+                    <tr className="border-b">
+                        <th className="p-2 text-left">ID</th>
+                        <th className="p-2 text-left">Original URL</th>
+                        <th className="p-2 text-left">ShortCode</th>
+                        <th className="p-2 text-left">Expires At</th>
+                        <th className="p-2 text-left">Actions</th>
                     </tr>
-                ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                    {urls.map(u => (
+                        <tr key={u.id} className="border-b">
+                            <td className="p-2">{u.id}</td>
+                            <td className="p-2 truncate">{u.originalUrl}</td>
+                            <td className="p-2">
+                                <a href={`http://host.docker.internal:57000/${u.shortCode}`} target="_blank" className="text-blue-600 underline">
+                                    {u.shortCode}
+                                </a>
+                            </td>
+                            <td className="p-2">{u.expiresAt || "—"}</td>
+                            <td className="p-2 flex gap-2">
+                                <button
+                                    onClick={() => showStats(u)}
+                                    className="bg-green-600 text-white px-2 py-1 rounded text-xs"
+                                >
+                                    Show stats
+                                </button>
+                                {mode === "private" && (
+                                    <button
+                                        onClick={() => deleteUrl(u)}
+                                        className="bg-red-600 text-white px-2 py-1 rounded text-xs"
+                                    >
+                                        Delete
+                                    </button>
+                                )}
+                            </td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 }

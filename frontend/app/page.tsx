@@ -39,30 +39,26 @@ export default function Page() {
     };
 
     return (
-        <div className="flex gap-8">
-            <UrlsPanel
-                token={token}
-                onSelect={loadStats}
-            />
+        <div className="flex h-screen gap-4 p-4">
+            {/* LEFT PANEL — таблиця */}
+            <UrlsPanel token={token} />
 
-            <StatsPanel stats={stats} />
-
-            <div className="flex flex-col gap-4 flex-1 items-end">
-
+            {/* RIGHT PANEL — сесія та форми */}
+            <div className="flex flex-col gap-4 flex-1">
                 <input
                     readOnly
                     value={token}
                     placeholder="Bearer token"
-                    className="w-[420px] p-2 border rounded bg-gray-50"
+                    className="w-full p-2 border rounded bg-gray-50"
                 />
-
-                <CreateSession onToken={setToken} />
-                <GetSession token={token} onSession={setSession} />
-                <CreateUrl token={token} onCreated={setCreatedUrl} />
-
+                <div className="flex flex-col gap-2">
+                    <CreateSession onToken={setToken} />
+                    <GetSession token={token} onSession={setSession} />
+                    <CreateUrl token={token} onCreated={setCreatedUrl} />
+                </div>
                 <SessionInfo session={session} url={createdUrl} />
             </div>
-
         </div>
+
     );
 }
