@@ -53,7 +53,7 @@ services:
         depends_on:
             - postgres
         restart: unless-stopped
-        command: php-fpm
+        command: php-fpm -F
 
     rabbitmq:
         image: rabbitmq:3-management

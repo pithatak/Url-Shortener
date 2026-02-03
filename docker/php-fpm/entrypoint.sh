@@ -10,9 +10,8 @@ done
 echo "PostgreSQL is ready"
 
 echo "Clearing cache..."
-php bin/console cache:clear || true
+rm -rf  var/cache/*
 
-# Composer install
 echo "Running composer install..."
 composer install --no-interaction --prefer-dist
 

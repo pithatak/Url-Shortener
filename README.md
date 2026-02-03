@@ -23,7 +23,7 @@ This project is a small REST API built with **Symfony**, **Doctrine**, **Postgre
 From the project root:
 
 ```bash
-   cp .env.example .env
+  cp backend/.env.example backend/.env
 ```
 ### 2. Build and start containers
 
