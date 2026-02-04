@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Dto\UrlCreateData;
 use App\Entity\Session;
 use App\Entity\Url;
 use App\Message\UrlClickedMessage;
@@ -25,40 +26,31 @@ class UrlService
     {
     }
 
-    public function create(array $data): Url
+    public function create(UrlCreateData $data): Url
     {
-        $alias = $data['alias'] ?? null;
-
+        $alias = $data->alias;
         if ($alias) {
-            $exists = $this->em->getRepository(Url::class)
-                ->findOneBy(['short_code' => $alias]);
-
-            if ($exists) {
+            if ($this->em->getRepository(Url::class)->findOneBy(['short_code' => $alias])) {
                 throw new ConflictHttpException('Alias already exists');
             }
         } else {
             do {
                 $alias = bin2hex(random_bytes(4));
-                $exists = $this->em->getRepository(Url::class)
-                    ->findOneBy(['short_code' => $alias]);
-            } while ($exists);
+            } while ($this->em->getRepository(Url::class)->findOneBy(['short_code' => $alias]));
         }
 
         $url = new Url();
-        $url->setSession($data['session']);
-        $url->setOriginalUrl($data['url']);
+        $url->setSession($data->session);
+        $url->setOriginalUrl($data->url);
         $url->setShortCode($alias);
-        $url->setIsPublic($data['isPublic'] ?? false);
-        $expiresAt = $this->resolveExpiresAt($data['expire'] ?? '1h');
-
-        $url->setExpiresAt($expiresAt);
+        $url->setIsPublic($data->isPublic);
+        $url->setExpiresAt($this->resolveExpiresAt($data->expire));
 
         $this->em->persist($url);
         $this->em->flush();
 
         return $url;
     }
-
 
     public function resolveShortCode(string $shortCode): Url
     {

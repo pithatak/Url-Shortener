@@ -2,9 +2,11 @@
 
 namespace App\Controller\Api;
 
+use App\Dto\UrlCreateData;
 use App\Repository\UrlRepository;
 use App\Service\SessionAuthService;
 use App\Service\UrlService;
+use App\Validators\UrlValidator;
 use App\ViewFactory\UrlViewFactory;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -17,12 +19,11 @@ final class UrlController extends AbstractController
 {
     #[Route('/api/urls', methods: ['POST'])]
     public function create(
-        Request            $request,
+        Request $request,
         SessionAuthService $sessionAuthService,
-        UrlService         $urlService,
-        #[\Symfony\Component\DependencyInjection\Attribute\Autowire(
-            service: 'limiter.url_create'
-        )]
+        UrlService $urlService,
+        UrlValidator $validator,
+        #[\Symfony\Component\DependencyInjection\Attribute\Autowire(service: 'limiter.url_create')]
         RateLimiterFactory $rateLimiterFactory
     ): JsonResponse
     {
@@ -34,9 +35,20 @@ final class UrlController extends AbstractController
         }
 
         $data = json_decode($request->getContent(), true);
-        $data['session'] = $session;
 
-        $url = $urlService->create($data);
+        $dto = new UrlCreateData();
+        $dto->url = $data['url'] ?? null;
+        $dto->alias = $data['alias'] ?? null;
+        $dto->expire = $data['expire'] ?? null;
+        $dto->isPublic = $data['isPublic'] ?? false;
+        $dto->session = $session;
+
+        $errors = $validator->validate($dto);
+        if (!empty($errors)) {
+            return $this->json(['errors' => $errors], 400);
+        }
+
+        $url = $urlService->create($dto);
 
         return $this->json([
             'id' => $url->getId(),
